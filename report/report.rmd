@@ -2,8 +2,12 @@
 ========================================================
 
 
-```{r loading, echo=F}
+```{r loading, echo=F, include=F}
 Sys.setlocale('LC_TIME', 'ru_RU.UTF-8')
+options(device = function(file, width = 7, height = 7, ...) {
+  cairo_pdf(tempfile(), width = width, height = height, ...)
+})
+pdf.options(encoding='Cyrillic.enc')
 source('../R/read.google.spreadsheet.r')
 source('../R/setkey.r')
 library(lubridate)
@@ -55,9 +59,17 @@ print(f)
 ```{r nchardensity, echo=FALSE}
 
 f <- ggplot(data, aes(nchcomm)) + geom_density()
-f <- f + ylab('Относительная плотность комментариев') + xlab('') +
-  ggtitle('Всплески комментариев приходятся на
-23 часа 21 октября и 11 часов 22 октября') +
+f <- f + ylab('Плотность длины комментариев') + xlab('') +
+  ggtitle('Чаще всего длина комментария\nне превышает 100 символов') +
   scale_y_continuous(breaks=NULL)
+print(f)
+```
+
+
+```{r ncharbar, echo=FALSE}
+
+f <- ggplot(data, aes(nchcomm)) + geom_bar()
+f <- f + ylab('Количество комментариев с данной длиной') + xlab('') +
+  ggtitle('Чаще всего длина комментария\nне превышает 100 символов') 
 print(f)
 ```

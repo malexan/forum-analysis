@@ -3,6 +3,7 @@
 
 
 ```{r loading, echo=F}
+Sys.setlocale('LC_TIME', 'ru_RU.UTF-8')
 source('../R/read.google.spreadsheet.r')
 source('../R/setkey.r')
 library(lubridate)
@@ -23,6 +24,7 @@ data$date <- str_trim(as.character(data$date))
 data$time <- str_trim(as.character(data$time))
 data <- data[data$time != '' & data$author != '',]
 data$timestamp <- dmy_hms(str_c(data$date, data$time, sep=' '))
+data$nchcomm <- str_length(data$text)
 ```
 
 ```{r createtable, results='asis', echo=FALSE}
@@ -43,6 +45,16 @@ print(f)
 ```{r timeofcommentdensity, echo=FALSE}
 
 f <- ggplot(data, aes(timestamp)) + geom_density()
+f <- f + ylab('Относительная плотность комментариев') + xlab('') +
+  ggtitle('Всплески комментариев приходятся на
+23 часа 21 октября и 11 часов 22 октября') +
+  scale_y_continuous(breaks=NULL)
+print(f)
+```
+
+```{r nchardensity, echo=FALSE}
+
+f <- ggplot(data, aes(nchcomm)) + geom_density()
 f <- f + ylab('Относительная плотность комментариев') + xlab('') +
   ggtitle('Всплески комментариев приходятся на
 23 часа 21 октября и 11 часов 22 октября') +

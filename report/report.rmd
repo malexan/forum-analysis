@@ -1,0 +1,51 @@
+Обсуждение проноса олимпийского факела по улицам Пскова
+========================================================
+
+
+```{r loading, echo=F}
+source('../R/read.google.spreadsheet.r')
+source('../R/setkey.r')
+library(lubridate)
+library(ggplot2)
+library(stringr)
+library(pander)
+
+rmd.table <- function(t) {
+  require(pander)
+  pandoc.table(t, style = 'rmarkdown', split.tables = Inf,
+             split.cells = Inf)
+  }
+
+data <- read.google.spreadsheet()
+
+data$author <- factor(str_trim(as.character(data$author)))
+data$date <- str_trim(as.character(data$date))
+data$time <- str_trim(as.character(data$time))
+data <- data[data$time != '' & data$author != '',]
+data$timestamp <- dmy_hms(str_c(data$date, data$time, sep=' '))
+```
+
+```{r createtable, results='asis', echo=FALSE}
+
+t <- as.data.frame(table(str_trim(as.character(data$author))))
+rmd.table(t)
+```
+
+```{r timeofcommentbar, echo=FALSE}
+
+f <- ggplot(data, aes(timestamp)) + geom_bar()
+f <- f + ylab('Количество комментариев') + xlab('') +
+  ggtitle('Всплески комментариев приходятся на
+23 часа 21 октября и 11 часов 22 октября')
+print(f)
+```
+
+```{r timeofcommentdensity, echo=FALSE}
+
+f <- ggplot(data, aes(timestamp)) + geom_density()
+f <- f + ylab('Относительная плотность комментариев') + xlab('') +
+  ggtitle('Всплески комментариев приходятся на
+23 часа 21 октября и 11 часов 22 октября') +
+  scale_y_continuous(breaks=NULL)
+print(f)
+```

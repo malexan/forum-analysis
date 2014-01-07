@@ -8,12 +8,16 @@ options(device = function(file, width = 7, height = 7, ...) {
   cairo_pdf(tempfile(), width = width, height = height, ...)
 })
 pdf.options(encoding='Cyrillic.enc')
-source('../R/read.google.spreadsheet.r')
-source('../R/setkey.r')
 library(lubridate)
 library(ggplot2)
+library(scales)
 library(stringr)
 library(pander)
+library(plyr)
+
+source('../R/read.google.spreadsheet.r')
+source('../R/setkey.r')
+source('../R/functions.r')
 
 rmd.table <- function(t) {
   require(pander)
@@ -29,12 +33,16 @@ data$time <- str_trim(as.character(data$time))
 data <- data[data$time != '' & data$author != '',]
 data$timestamp <- dmy_hms(str_c(data$date, data$time, sep=' '))
 data$nchcomm <- str_length(data$text)
+
+data$authnumb  <- laply(seq_len(dim(data)[1]), function(x) {
+  length(unique(data$author[seq_len(x)]))
+  })
 ```
 
 ```{r createtable, results='asis', echo=FALSE}
 
 t <- as.data.frame(table(str_trim(as.character(data$author))))
-rmd.table(t)
+# rmd.table(t)
 ```
 
 ```{r timeofcommentbar, echo=FALSE}
@@ -68,8 +76,67 @@ print(f)
 
 ```{r ncharbar, echo=FALSE}
 
-f <- ggplot(data, aes(nchcomm)) + geom_bar()
-f <- f + ylab('Количество комментариев с данной длиной') + xlab('') +
-  ggtitle('Чаще всего длина комментария\nне превышает 100 символов') 
+txt <- data.frame(
+  x = 400,
+  y = 7:8,
+  value = c(mean(data$nchcomm, na.rm = T), 
+    median(data$nchcomm, na.rm = T)),
+  label = str_c(
+    c("Среднее: ", "Медиана: "),
+    c(
+      round(mean(data$nchcomm, na.rm = T), 1),
+      round(median(data$nchcomm, na.rm = T), 1))),
+  clr = c('blue', 'red'))
+  
+f <- ggplot(data, aes(nchcomm)) + geom_bar(binwidth=20, color='black', 
+                                           fill='white') +
+  geom_vline(data = txt, aes(xintercept = value, color = clr)) +
+  geom_text(data = txt, aes(x, y, label = label, color = clr), hjust = 0) +
+  guides(color = F)
+f <- f + ylab('Количество комментариев с данной длиной') + 
+  xlab('Длина комментария, символов') +
+  ggtitle('В половине случаев длина комментария\nне превышает 111 символов') 
+print(f)
+```
+
+###Накопление объёма информации по времени
+
+```{r ncharcummbytime, echo=FALSE}
+
+f <- ggplot(data) + 
+  geom_step(aes(timestamp, cumsum(nchcomm))) 
+f <- f + ylab('Суммарное количество символов') + 
+  xlab('') +
+  ggtitle('Накопление информации в течение времени')
+
+print(f + geom_night(f))
+
+
+f <- ggplot(data) + 
+  geom_step(aes(timestamp, cumsum(nchcomm)/sum(nchcomm))) 
+f <- f + ylab('Доля от суммарного\nколичества символов') + 
+  xlab('') +
+  ggtitle('Накопление информации в течение времени') +
+  scale_y_continuous(labels = percent)
+print(f + geom_night(f))
+
+```
+
+```{r authors, echo=FALSE}
+f <- ggplot(data) + 
+  geom_step(aes(timestamp, authnumb)) 
+f <- f + ylab('Число пользователей, принявших участие в обсуждении') + 
+  xlab('') +
+  ggtitle('Появление новых комментаторов в течение времени') 
+print(f + geom_night(f))
+```
+
+
+```{r authorsinfo, echo=FALSE}
+f <- ggplot(data, aes(authnumb, cumsum(nchcomm))) + 
+  geom_step() + geom_point()
+f <- f + xlab('Число пользователей, принявших участие в обсуждении') + 
+  ylab('Суммарное количество символов') +
+  ggtitle('Вклад новых пользователей в объём информации') 
 print(f)
 ```

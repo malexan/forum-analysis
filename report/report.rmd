@@ -26,7 +26,9 @@ rmd.table <- function(t) {
   }
 
 data <- read.google.spreadsheet()
-
+gender <- read.google.spreadsheet(3)
+gender$author <- str_trim(as.character(gender$author))
+# data$author <- factor(str_trim(as.character(data$author)))
 data$author <- factor(str_trim(as.character(data$author)))
 data$date <- str_trim(as.character(data$date))
 data$time <- str_trim(as.character(data$time))
@@ -37,6 +39,10 @@ data$nchcomm <- str_length(data$text)
 data$authnumb  <- laply(seq_len(dim(data)[1]), function(x) {
   length(unique(data$author[seq_len(x)]))
   })
+
+data <- join(data, gender[, c('author', 'gender')])
+data$gender <- factor(data$gender, 
+                      labels = c("Женщина", "Мужчина"))
 ```
 
 ```{r createtable, results='asis', echo=FALSE}
@@ -138,5 +144,43 @@ f <- ggplot(data, aes(authnumb, cumsum(nchcomm))) +
 f <- f + xlab('Число пользователей, принявших участие в обсуждении') + 
   ylab('Суммарное количество символов') +
   ggtitle('Вклад новых пользователей в объём информации') 
+print(f)
+```
+
+### Пол
+
+```{r timeofcommentbar_gender, echo=FALSE}
+
+f <- ggplot(data, aes(timestamp, fill = gender)) + 
+  geom_bar(position = 'dodge', binwidth = 3600 * 3)
+f <- f + xlab('') +
+  scale_y_continuous(name = 'Количество комментариев',
+                     breaks = 1:10) +
+  ggtitle('Различия по времени между мужскими\nи женскими комментариями') +
+  scale_fill_discrete(name = "Пол автора") +
+  theme(legend.justification = c(1, 1), legend.position = c(1, 1))
+print(f)
+```
+
+```{r timeofcommentdensity_gender, echo=FALSE}
+
+f <- ggplot(data, aes(timestamp, fill = gender)) + 
+  geom_density(alpha = .3)
+f <- f + xlab('') +
+  ggtitle('Различия по времени между мужскими\nи женскими комментариями') +
+    scale_y_continuous(breaks=NULL, 
+                       name = "Плотность: чем выше, тем больше комментариев") +
+  scale_fill_discrete(name = "Пол автора") +
+  theme(legend.justification = c(1, 1), legend.position = c(1, 1))
+print(f)
+```
+
+```{r nchar_gender, echo=FALSE}
+
+f <- ggplot(data, aes(gender, nchcomm)) + geom_boxplot()
+f <- f + xlab('') +
+  ggtitle('Различие длин комментариев мужчин и женщин') +
+    scale_y_continuous(name = "Количество символов в комментарии") +
+  xlab('')
 print(f)
 ```
